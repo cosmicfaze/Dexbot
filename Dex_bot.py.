@@ -1,0 +1,34 @@
+import requests
+     import pandas as pd
+     from sqlalchemy import create_engine
+     from datetime import datetime
+
+     # Database setup (replace with your Heroku Postgres URL later)
+     DATABASE_URL = "postgres://your_heroku_database_url"
+     engine = create_engine(DATABASE_URL)
+
+     def fetch_token_data(token_address):
+         DEXSCREENER_API_URL = "https://api.dexscreener.com/latest/dex/tokens/"
+         response = requests.get(f"{DEXSCREENER_API_URL}{token_address}")
+         if response.status_code == 200:
+             return response.json()
+         else:
+             print(f"Failed to fetch data for token {token_address}")
+             return None
+
+     def save_token_data(token_address, price, volume, liquidity):
+         with engine.connect() as connection:
+             connection.execute(f"""
+                 INSERT INTO token_data (token_address, price, volume, liquidity, timestamp)
+                 VALUES ('{token_address}', {price}, {volume}, {liquidity}, '{datetime.utcnow()}');
+             """)
+
+     # Example usage
+     token_address = "0xYourTokenAddress"  # Replace with a real token address
+     token_data = fetch_token_data(token_address)
+     if token_data:
+         price = float(token_data['pairs'][0]['priceUsd'])
+         volume = float(token_data['pairs'][0]['volume']['h24'])
+         liquidity = float(token_data['pairs'][0]['liquidity']['usd'])
+         save_token_data(token_address, price, volume, liquidity)
+         print("Data saved successfully!")
